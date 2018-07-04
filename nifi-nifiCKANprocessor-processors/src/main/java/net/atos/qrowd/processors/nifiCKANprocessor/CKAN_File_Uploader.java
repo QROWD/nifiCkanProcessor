@@ -386,8 +386,6 @@ public class CKAN_File_Uploader extends AbstractProcessor {
     }
 
     private String getFileName(File file){
-
-        getLogger().log(LogLevel.ERROR,"Filename to be processed: " + file.getName());
         return file.getName().split("\\.")[0];
     }
 
