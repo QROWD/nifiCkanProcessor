@@ -88,6 +88,7 @@ public class CKAN_File_Uploader extends AbstractProcessor {
             .displayName("Organization id to add the file to")
             .description("Organization id to add the package to, or create if necessary. Must contain only alphanumeric characters.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(true)
             .required(true)
             .build();
     private static final PropertyDescriptor package_name = new PropertyDescriptor
@@ -95,6 +96,7 @@ public class CKAN_File_Uploader extends AbstractProcessor {
             .displayName("Name of the package to add the file to")
             .description("Name of the package to add the package to, or create if necessary. Must contain only alphanumeric characters. In case this is empty, the name of the file will be used.")
             .addValidator(Validator.VALID)
+            .expressionLanguageSupported(true)
             .required(false)
             .build();
     private static final PropertyDescriptor package_description = new PropertyDescriptor
@@ -216,14 +218,14 @@ public class CKAN_File_Uploader extends AbstractProcessor {
         String filename = null;
         if(context.getProperty(package_name).isSet())
         {
-            filename =context.getProperty(package_name).getValue();
+            filename =context.getProperty(package_name).evaluateAttributeExpressions(flowFile).getValue();
         }
         //Check if the property is filled with spaces, empty, or null to use the file name as filename
         if(filename == null || filename.isEmpty() || filename.trim().length()==0)
         {
             filename=getFileName(file);
         }
-        final String organizationId = context.getProperty(organization_id).getValue();
+        final String organizationId = context.getProperty(organization_id).evaluateAttributeExpressions(flowFile).getValue();
 
         if (flowFile == null) {
             return;
