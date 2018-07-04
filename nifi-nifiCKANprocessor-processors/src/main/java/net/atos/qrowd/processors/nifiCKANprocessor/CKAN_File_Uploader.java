@@ -62,6 +62,7 @@ public class CKAN_File_Uploader extends AbstractProcessor {
             .displayName("CKAN Url")
             .description("Hostname of the CKAN instance to write to")
             .addValidator(StandardValidators.URL_VALIDATOR)
+            .expressionLanguageSupported(true)
             .required(true)
             .build();
     private static final PropertyDescriptor file_path = new PropertyDescriptor
@@ -78,6 +79,7 @@ public class CKAN_File_Uploader extends AbstractProcessor {
             .displayName("File Api_Key")
             .description("Api Key to be used to interact with CKAN")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(true)
             .required(true)
             .sensitive(true)
             .build();
@@ -201,10 +203,10 @@ public class CKAN_File_Uploader extends AbstractProcessor {
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         FlowFile flowFile = session.get();
         //This is the way to get the value of a property
-        String url = context.getProperty(CKAN_url).getValue();
+        String url = context.getProperty(CKAN_url).evaluateAttributeExpressions(flowFile).getValue();
         final String filepath = context.getProperty(file_path).evaluateAttributeExpressions(flowFile).getValue();
         final File file = new File(filepath);
-        final String apiKey = context.getProperty(api_key).getValue();
+        final String apiKey = context.getProperty(api_key).evaluateAttributeExpressions(flowFile).getValue();
         final String packageDescription = context.getProperty(package_description).evaluateAttributeExpressions(flowFile).getValue();
         final Boolean packagePrivate;
         packagePrivate = context.getProperty(package_private).getValue().equals("True");
@@ -229,15 +231,10 @@ public class CKAN_File_Uploader extends AbstractProcessor {
 
         // Verify that file system is reachable and file exists
         Path filePath = file.toPath();
-        if (!Files.exists(filePath) && !Files.notExists(filePath)) { // see https://docs.oracle.com/javase/tutorial/essential/io/check.html for more details
+        if (Files.notExists(filePath)) { // see https://docs.oracle.com/javase/tutorial/essential/io/check.html for more details
             getLogger().log(LogLevel.ERROR, "Could not fetch file {} from file system for {} because the existence of the file cannot be verified; routing to failure",
                     new Object[]{file, flowFile});
             session.transfer(session.penalize(flowFile), REL_FAILURE);
-            return;
-        } else if (!Files.exists(filePath)) {
-            getLogger().log(LogLevel.ERROR, "Could not fetch file {} from file system for {} because the file does not exist; routing to not.found", new Object[]{file, flowFile});
-            session.getProvenanceReporter().route(flowFile, REL_NOT_FOUND);
-            session.transfer(session.penalize(flowFile), REL_NOT_FOUND);
             return;
         }
 
